@@ -2,7 +2,8 @@ pipeline {
   agent {
     docker {
       image 'node:slim'
-      args '-u root:root -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST'
+    //   args '-u root:root -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST'
+      args '-u root:root -e DOCKER_HOST=tcp://dind:2375'
     }
   }
 
@@ -38,9 +39,23 @@ pipeline {
         steps {
             sh '''
             set -e
+            echo "Preparing Docker CLI inside node:slim..."
+
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates curl gnupg lsb-release
+
+            mkdir -p /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
+            > /etc/apt/sources.list.d/docker.list
+
+            apt-get update -qq
+            apt-get install -y -qq docker-ce-cli
+
             echo "Verifying Docker CLI connectivity..."
             docker version
-            echo "Docker CLI is already available and connected to DinD."
+            echo "Docker CLI successfully connected to DinD."
             '''
         }
     }
