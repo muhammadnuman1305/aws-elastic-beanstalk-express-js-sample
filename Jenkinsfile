@@ -34,31 +34,17 @@ pipeline {
     }
 
     // 2. Prepare Docker CLI so the agent can talk to Docker-in-Docker (DinD)
-
     stage('Prepare Docker CLI') {
         steps {
             sh '''
             set -e
-            echo "Preparing Docker CLI..."
-
-            # Install Docker CLI (Debian Bookworm base)
-            apt-get update -qq
-            apt-get install -y -qq ca-certificates curl gnupg lsb-release
-
-            # Add official Docker repo
-            mkdir -p /etc/apt/keyrings
-            curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
-            > /etc/apt/sources.list.d/docker.list
-
-            apt-get update -qq
-            apt-get install -y -qq docker-ce-cli
-
-            echo "Verifying Docker CLI..."
+            echo "Verifying Docker CLI connectivity..."
             docker version
+            echo "Docker CLI is already available and connected to DinD."
             '''
         }
     }
+
 
 
     // 3. Install Node dependencies
