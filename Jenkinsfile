@@ -2,156 +2,142 @@ pipeline {
   agent {
     docker {
       image 'node:slim'
-      args '-u root:root -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST'
+    //   args '-u root:root -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST'
+      args '-u root:root -e DOCKER_HOST=tcp://dind:2375'
     }
   }
 
+  // Environment Variables
   environment {
-    REGISTRY   = 'docker.io'
-    IMAGE_NAME = 'muhammadnuman91/assignment2_22035013'
-    IMAGE_TAG  = "build-${BUILD_NUMBER}"
-    DOCKER_BUILDKIT = '1'
+    // Registry configuration
+    REGISTRY   = 'docker.io'                                   // To push the image to Docker Hub
+    IMAGE_NAME = 'muhammadnuman91/assignment2_22035013'        // Format: <DockerHubUsername>/<Repository>
+    IMAGE_TAG  = "build-${BUILD_NUMBER}"                       // Automatically versioned tag per build
+    DOCKER_BUILDKIT = '1'                                      // Enable modern BuildKit builder
   }
 
+  // Pipeline Options
   options {
-    timestamps()
-    skipDefaultCheckout(true)
-    disableConcurrentBuilds()
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
+    timestamps()                    // Add timestamps to console
+    skipDefaultCheckout(true)       // Skip auto-checkout, we’ll do it manually
+    disableConcurrentBuilds()       // Prevent parallel runs on the same job
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10')) // Keep only last 20 builds
   }
 
+  // Stages
   stages {
 
+    // 1. Checkout source code from the connected Git repository
     stage('Checkout') {
-      steps {
-        checkout scm
-        sh 'echo "Source code checked out successfully"'
-      }
+        steps {
+            checkout scm
+        }
     }
 
+    // 2. Prepare Docker CLI so the agent can talk to Docker-in-Docker (DinD)
     stage('Prepare Docker CLI') {
-      steps {
-        sh '''
-          set -e
-          echo "Installing Docker CLI inside Node container..."
-          
-          apt-get update -qq
-          apt-get install -y -qq ca-certificates curl gnupg lsb-release
-          
-          install -m 0755 -d /etc/apt/keyrings
-          curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-          chmod a+r /etc/apt/keyrings/docker.gpg
-          
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-          
-          apt-get update -qq
-          apt-get install -y -qq docker-ce-cli
-          
-          echo "Verifying Docker CLI connectivity to DinD..."
-          docker version
-          echo "Docker CLI successfully connected to DinD daemon!"
-        '''
-      }
+        steps {
+            sh '''
+            set -e
+            echo "Preparing Docker CLI inside node:slim..."
+
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates curl gnupg lsb-release
+
+            mkdir -p /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
+            > /etc/apt/sources.list.d/docker.list
+
+            apt-get update -qq
+            apt-get install -y -qq docker-ce-cli
+
+            echo "Verifying Docker CLI connectivity..."
+            docker version
+            echo "Docker CLI successfully connected to DinD."
+            '''
+        }
     }
 
+
+
+    // 3. Install Node dependencies
     stage('Install Dependencies') {
-      steps {
-        sh '''
-          set -e
-          echo "Installing Node.js dependencies..."
-          npm install --save
-          echo "Dependencies installed successfully"
-        '''
-      }
+        steps {
+            sh '''
+            set -e
+            echo "Installing Node dependencies..."
+            # Required as per assignment: use 'npm install --save'
+            npm install --save
+            '''
+        }
     }
 
+    // 4. Run unit tests
     stage('Unit Tests') {
-      steps {
-        sh '''
-          set -e
-          echo "Running unit tests..."
-          npm test || {
-            echo "Warning: No tests found or tests failed - continuing anyway"
-            exit 0
-          }
-        '''
-      }
+        steps {
+            sh '''
+            set -e
+            echo "Running unit tests..."
+            # Execute the test script defined in package.json
+            npm test || echo "No tests found - skipping test stage."
+            '''
+        }
     }
 
+    // 5. Security Scan using Snyk
     stage('Security Scan (Snyk)') {
-      steps {
-        withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-          sh '''
-            set -e
-            echo "Running security scan using Snyk..."
-            
-            npm install -g snyk@latest
-            snyk auth "$SNYK_TOKEN"
-            
-            echo "Scanning for High and Critical severity vulnerabilities..."
-            snyk test --severity-threshold=high || {
-              echo "SECURITY ALERT: High or Critical vulnerabilities detected!"
-              exit 1
+        steps {
+            // Pull Snyk token securely from Jenkins credentials
+            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+            sh '''
+                set -e
+                echo "Running security scan using Snyk..."
+                npm install -g snyk@latest                # Install Snyk CLI globally
+                snyk auth "$SNYK_TOKEN"                   # Authenticate Snyk using token
+                snyk test --severity-threshold=high       # Fail build if High/Critical issues exist
+            '''
             }
-            
-            echo "Security scan passed - no High/Critical vulnerabilities found"
-          '''
         }
-      }
     }
 
+    // 6. Build Docker image for the Node.js app
     stage('Docker Build') {
-      steps {
-        sh '''
-          set -e
-          echo "Building Docker image..."
-          echo "Image: $REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-          
-          docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .
-          docker tag "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" "$REGISTRY/$IMAGE_NAME:latest"
-          
-          echo "Docker image built successfully"
-        '''
-      }
+        steps {
+            sh '''
+            set -e
+            echo "Building Docker image..."
+            docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .
+            '''
+        }
     }
 
+    // 7. Push the built image to Docker Hub
     stage('Docker Push') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', 
-                                          usernameVariable: 'REG_USER', 
-                                          passwordVariable: 'REG_PASS')]) {
-          sh '''
-            set -e
-            echo "Logging into Docker Hub..."
-            echo "$REG_PASS" | docker login "$REGISTRY" -u "$REG_USER" --password-stdin
-            
-            echo "Pushing Docker image to registry..."
-            docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-            docker push "$REGISTRY/$IMAGE_NAME:latest"
-            
-            echo "Cleaning up - logging out from registry..."
-            docker logout "$REGISTRY"
-            
-            echo "Docker image pushed successfully to $REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-          '''
+        steps {
+            // Use Jenkins credentials to log in and push securely
+            withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+            sh '''
+                set -e
+                echo "Logging into Docker Hub..."
+                echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
+                echo "Pushing Docker image to registry..."
+                docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+                docker logout
+            '''
+            }
         }
-      }
     }
   }
 
+  // Post Actions
   post {
     always {
-      script {
-        echo "======================================"
-        echo "Build finished with status: ${currentBuild.currentResult}"
-        echo "Build Number: ${BUILD_NUMBER}"
-        echo "Image Tag: ${IMAGE_TAG}"
-        echo "======================================"
-      }
+      sh 'echo "Build finished with status: ${currentBuild.currentResult}"'
     }
     success {
-      echo "Pipeline completed successfully!"
-      echo "Image pushed to: ${env.REGISTRY}/${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+      echo "Pipeline completed successfully. Image pushed to Docker Hub."
     }
     failure {
       echo "Build failed. Check above logs for error details."
