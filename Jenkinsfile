@@ -38,12 +38,19 @@ pipeline {
         steps {
             sh '''
             set -e
-            echo "Verifying Docker CLI and connection..."
+            echo "Preparing Docker CLI access..."
 
-            # Verify that docker binary is accessible
+            # Ensure Docker binary is executable
+            if [ -f /usr/bin/docker ]; then
+            echo "Fixing permissions on Docker binary..."
+            chmod +x /usr/bin/docker
+            fi
+
+            # Verify Docker CLI availability
+            echo "Verifying Docker CLI version..."
             docker --version
 
-            # Test connectivity to DinD service
+            # Check connection to Docker daemon
             echo "Checking Docker daemon access..."
             docker ps > /dev/null
 
