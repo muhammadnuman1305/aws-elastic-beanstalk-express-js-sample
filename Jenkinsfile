@@ -18,7 +18,7 @@ pipeline {
   // Pipeline Options
   options {
     timestamps()                    // Add timestamps to console
-    skipDefaultCheckout(true)       // Skip auto-checkout, we’ll do it manually
+    skipDefaultCheckout(true)       // Skip auto-checkout, we'll do it manually
     disableConcurrentBuilds()       // Prevent parallel runs on the same job
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10')) // Keep only last 20 builds
   }
@@ -132,7 +132,7 @@ pipeline {
   // Post Actions
   post {
     always {
-      sh 'echo "Build finished with status: ${currentBuild.currentResult}"'
+      echo "Build finished with status: ${currentBuild.currentResult}"
     }
     success {
       echo "Pipeline completed successfully. Image pushed to Docker Hub."
