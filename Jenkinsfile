@@ -38,23 +38,35 @@ pipeline {
         steps {
             sh '''
             set -e
-            echo "Installing Docker CLI for build agent..."
+            echo "Installing and verifying Docker CLI..."
 
+            # Install prerequisite packages
             apt-get update -qq
             apt-get install -y -qq ca-certificates curl gnupg lsb-release
 
-            mkdir -p /etc/apt/keyrings
+            # Set up Docker’s official GPG key
+            install -m 0755 -d /etc/apt/keyrings
             curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-            https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+            chmod a+r /etc/apt/keyrings/docker.gpg
 
+            # Add Docker repository
+            echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
+            > /etc/apt/sources.list.d/docker.list
+
+            # Install Docker CLI only (no daemon)
             apt-get update -qq
             apt-get install -y -qq docker-ce-cli
 
-            echo "Verifying Docker CLI connectivity..."
+            # Verify that Docker CLI is installed and daemon is reachable
+            echo "Verifying Docker CLI version..."
             docker --version
+
+            echo "Testing Docker daemon connectivity..."
             docker ps > /dev/null
-            echo "Docker CLI verified."
+
+            echo "Docker CLI installed and verified successfully!"
             '''
         }
     }
