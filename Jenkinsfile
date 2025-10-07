@@ -1,10 +1,10 @@
 pipeline {
-  agent {
-    docker {
-      image 'node:slim'
-      args '-u root:root -v /usr/bin/docker:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST'
+    agent {
+        docker {
+            image 'node:slim'
+            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
     }
-  }
 
   // Environment Variables
   environment {
@@ -38,23 +38,23 @@ pipeline {
         steps {
             sh '''
             set -e
-            echo "Preparing Docker CLI access..."
+            echo "Installing Docker CLI for build agent..."
 
-            # Ensure Docker binary is executable
-            if [ -f /usr/bin/docker ]; then
-            echo "Fixing permissions on Docker binary..."
-            chmod +x /usr/bin/docker
-            fi
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates curl gnupg lsb-release
 
-            # Verify Docker CLI availability
-            echo "Verifying Docker CLI version..."
+            mkdir -p /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+
+            apt-get update -qq
+            apt-get install -y -qq docker-ce-cli
+
+            echo "Verifying Docker CLI connectivity..."
             docker --version
-
-            # Check connection to Docker daemon
-            echo "Checking Docker daemon access..."
             docker ps > /dev/null
-
-            echo "Docker CLI verified and accessible."
+            echo "Docker CLI verified."
             '''
         }
     }
