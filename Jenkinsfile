@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'node:slim'
-            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST'
         }
     }
 
