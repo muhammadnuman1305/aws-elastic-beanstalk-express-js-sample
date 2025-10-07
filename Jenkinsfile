@@ -40,7 +40,18 @@ pipeline {
             set -e
             echo "Preparing Docker CLI..."
 
-            # Install Docker CLI in Debian-based container (node:16-slim)
+            # Install Docker CLI in Debian-based container (node:slim)
+            apt-get update -qq
+            apt-get install -y -qq ca-certificates curl gnupg lsb-release
+
+            # Add official Docker repository
+            mkdir -p /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian \
+            $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+
             apt-get update -qq
             apt-get install -y -qq docker-ce-cli
 
@@ -49,6 +60,7 @@ pipeline {
             '''
         }
     }
+
 
     // 3. Install Node dependencies
     stage('Install Dependencies') {
