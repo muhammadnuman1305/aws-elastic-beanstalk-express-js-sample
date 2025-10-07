@@ -171,24 +171,17 @@ pipeline {
   // Post Actions
   post {
     always {
-      sh '''
+      script {
         echo "======================================"
         echo "Build finished with status: ${currentBuild.currentResult}"
         echo "Build Number: ${BUILD_NUMBER}"
         echo "Image Tag: ${IMAGE_TAG}"
         echo "======================================"
-      '''
-      // Clean up Docker images to save space
-      sh '''
-        docker images | grep "$IMAGE_NAME" || true
-        echo "Cleaning up local images..."
-        docker rmi "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" || true
-        docker rmi "$REGISTRY/$IMAGE_NAME:latest" || true
-      '''
+      }
     }
     success {
       echo "Pipeline completed successfully!"
-      echo "Image pushed to: $REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+      echo "Image pushed to: ${env.REGISTRY}/${env.IMAGE_NAME}:${env.IMAGE_TAG}"
     }
     failure {
       echo "Build failed. Check above logs for error details."
