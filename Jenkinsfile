@@ -102,8 +102,12 @@ EOF
     // 6. Build Docker image for the Node.js app
     stage('Docker Build') {
       steps {
+        checkout scm
         sh '''
         set -e
+        echo "Ensuring workspace has files..."
+        ls -la
+
         echo "Creating Dockerfile dynamically..."
         cat > Dockerfile <<'EOF'
         FROM node:16
@@ -117,6 +121,10 @@ EOF
 
         echo "Packing and streaming context to DinD..."
         tar -czf context.tar.gz .
+        echo "Build context size:"
+        ls -lh context.tar.gz
+
+        echo "Building image inside DinD..."
         docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" - < context.tar.gz
         docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
 
