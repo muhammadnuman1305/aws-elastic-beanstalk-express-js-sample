@@ -127,16 +127,16 @@ EOF
     stage('Docker Push') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-          sh '''
-          set -e
-          echo "Logging into Docker Hub..."
-          echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
+            sh '''
+            set -e
+            echo "Logging into Docker Hub..."
+            echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
 
-          echo "Pushing Docker image to registry..."
-          docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+            echo "Pushing Docker image to registry..."
+            docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
 
-          docker logout
-          '''
+            docker logout
+            '''
         }
       }
     }
