@@ -103,11 +103,21 @@ EOF
         steps {
             sh '''
             set -e
-            echo "Building Docker image with correct tags..."
-            docker -H unix:///var/run/docker.sock build -t "$IMAGE_NAME:$IMAGE_TAG" -f Dockerfile "$WORKSPACE"
+            echo "Creating Dockerfile dynamically..."
+            cat > Dockerfile <<'EOF'
+            FROM node:16
+            WORKDIR /app
+            COPY package*.json ./
+            RUN npm install --production
+            COPY . .
+            EXPOSE 3000
+            CMD ["npm", "start"]
+            EOF
+
+            echo "Building Docker image..."
+            docker -H unix:///var/run/docker.sock build -t "$IMAGE_NAME:$IMAGE_TAG" .
+            docker -H unix:///var/run/docker.sock tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
             '''
-            // docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "docker.io/$IMAGE_NAME:$IMAGE_TAG" .
-            // docker images | grep "$IMAGE_NAME"
         }
     }
 
@@ -120,7 +130,7 @@ EOF
             echo "Logging into Docker Hub..."
             echo "$REG_PASS" | docker -H unix:///var/run/docker.sock login -u "$REG_USER" --password-stdin
             echo "Pushing Docker image to Docker Hub..."
-            docker -H unix:///var/run/docker.sock push "$IMAGE_NAME:$IMAGE_TAG"
+            docker -H unix:///var/run/docker.sock push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
             docker -H unix:///var/run/docker.sock logout
             '''
             }
