@@ -130,15 +130,25 @@ EOF
   }
 }
 
-    // 8. Artifact build files
+    // 7. Artifact build files
     stage('Archive Build Files') {
       steps {
-        sh 'tar -czf build_logs.tar.gz .'
-        archiveArtifacts artifacts: 'build_logs.tar.gz', fingerprint: true
+        sh '''
+        set -e
+        echo "Collecting key build logs and files..."
+        mkdir -p archive
+        cp Dockerfile archive/ || true
+        cp package*.json archive/ || true
+        cp -r node_modules archive/node_modules || true
+        cp -r logs archive/ || true
+        tar -czf build_artifacts.tar.gz archive
+        '''
+        archiveArtifacts artifacts: 'build_artifacts.tar.gz', fingerprint: true
       }
     }
 
-    // 7. Push the built image to Docker Hub
+
+    // 8. Push the built image to Docker Hub
     stage('Docker Push') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
