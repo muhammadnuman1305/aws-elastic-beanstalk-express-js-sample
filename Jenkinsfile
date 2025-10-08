@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'node:16'  // Use the full Node 16 image (not slim)
-      args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST=tcp://dind:2375'
+      args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST=tcp://dind:2375 --network project2-compose_jenkins_dind'
     }
   }
 
@@ -55,7 +55,7 @@ EOF
         docker --version
         
         echo "Testing Docker daemon connection..."
-        docker -H tcp://dind:2375 ps || echo "⚠️  Docker daemon not ready yet — continuing"
+        docker -H tcp://dind:2375 ps || echo "Docker daemon not ready yet — continuing"
         '''
       }
     }
