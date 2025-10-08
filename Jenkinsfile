@@ -100,14 +100,28 @@ EOF
 
     // 6. Build Docker image for the Node.js app
     stage('Docker Build') {
-      steps {
-        sh '''
-        set -e
-        echo "Building Docker image..."
-        docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .
-        '''
-      }
+        steps {
+            sh '''
+            set -e
+            echo "Creating temporary Dockerfile..."
+            cat <<'EOF' > Dockerfile
+            FROM node:16
+            WORKDIR /app
+            COPY package*.json ./
+            RUN npm install --production
+            COPY . .
+            EXPOSE 3000
+            CMD ["npm", "start"]
+            EOF
+
+            echo "Building Docker image..."
+            docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .
+
+            echo "Docker image built successfully."
+            '''
     }
+    }
+
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
