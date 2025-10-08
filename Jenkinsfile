@@ -101,33 +101,36 @@ EOF
 
     // 6. Build Docker image for the Node.js app
     stage('Docker Build') {
-      steps {
-        checkout scm
-        sh '''
-        set -e
-        echo "Ensuring workspace has files..."
-        ls -la
+  steps {
+    checkout scm
+    sh '''
+    set -e
+    echo "Ensuring workspace has files..."
+    ls -la
 
-        echo "Creating Dockerfile dynamically..."
-        cat > Dockerfile <<'EOF'
-        FROM node:16
-        WORKDIR /app
-        COPY package*.json ./
-        RUN npm install --production
-        COPY . .
-        EXPOSE 3000
-        CMD ["npm", "start"]
-    EOF
+    echo "Creating Dockerfile dynamically..."
+    cat > Dockerfile <<'EOF'
+FROM node:16
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --production
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+EOF
 
-        echo "Building image inside DinD using mounted workspace..."
-        docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" /var/jenkins_home/workspace/22035013_Project2_Pipeline
-        docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+    echo "Dockerfile created successfully:"
+    cat Dockerfile
 
-        echo "Verifying images in DinD..."
-        docker -H tcp://172.18.0.2:2375 images | grep "$IMAGE_NAME" || (echo "Image not found in DinD!" && exit 1)
-        '''
-      }
-    }
+    echo "Building image inside DinD..."
+    docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" .
+    docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+
+    echo "Verifying image exists in DinD..."
+    docker -H tcp://172.18.0.2:2375 images | grep "$IMAGE_NAME" || (echo "Image not found!" && exit 1)
+    '''
+  }
+}
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
