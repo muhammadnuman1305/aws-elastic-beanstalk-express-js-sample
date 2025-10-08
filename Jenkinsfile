@@ -3,7 +3,7 @@ pipeline {
     docker {
       image 'node:16'  // Use the full Node 16 image (not slim)
       // args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
-      args '-u root:root'
+      args "--network project2-compose_jenkins_dind -u root:root"
     }
   }
 
