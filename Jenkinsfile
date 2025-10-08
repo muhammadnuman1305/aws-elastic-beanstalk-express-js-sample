@@ -103,42 +103,27 @@ EOF
         steps {
             sh '''
             set -e
-            echo "Creating temporary Dockerfile..."
-            cat <<'EOF' > Dockerfile
-            FROM node:16
-            WORKDIR /app
-            COPY package*.json ./
-            RUN npm install --production
-            COPY . .
-            EXPOSE 3000
-            CMD ["npm", "start"]
-            EOF
-
-            echo "Building Docker image..."
-            docker build -t "$IMAGE_NAME:$IMAGE_TAG" .
-
-            echo "Tagging image for Docker Hub..."
-            docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+            echo "Building Docker image with correct tags..."
+            docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "docker.io/$IMAGE_NAME:$IMAGE_TAG" .
+            docker images | grep "$IMAGE_NAME"
             '''
         }
     }
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+        steps {
+            withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
             sh '''
             set -e
             echo "Logging into Docker Hub..."
             echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
-
-            echo "Pushing Docker image to registry..."
-            docker push "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-
+            echo "Pushing Docker image to Docker Hub..."
+            docker push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
             docker logout
             '''
+            }
         }
-      }
     }
   }
 
