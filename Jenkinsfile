@@ -2,8 +2,8 @@ pipeline {
   agent {
     docker {
       image 'node:16'  // Use the full Node 16 image (not slim)
-    //   args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST=tcp://dind:2375 --network project2-compose_jenkins_dind'
-      args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+      // args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+      args '--network project2-compose_jenkins_dind'
     }
   }
 
@@ -128,7 +128,7 @@ EOF
               sh '''
               set -e
               echo "Logging into Docker Hub..."
-              echo "$REG_PASS" | docker -H unix:///var/run/docker.sock login -u "$REG_USER" --password-stdin
+              echo "$REG_PASS" | docker -H tcp://dind:2375 login -u "$REG_USER" --password-stdin
               echo "Pushing Docker image to Docker Hub..."
               docker -H tcp://dind:2375 push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
               docker -H tcp://dind:2375 logout
