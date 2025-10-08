@@ -120,10 +120,10 @@ EOF
             sh '''
             set -e
             echo "Logging into Docker Hub..."
-            echo "$REG_PASS" | docker login -u "$REG_USER" --password-stdin
+            echo "$REG_PASS" | docker -H unix:///var/run/docker.sock login -u "$REG_USER" --password-stdin
             echo "Pushing Docker image to Docker Hub..."
-            docker push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
-            docker logout
+            docker -H unix:///var/run/docker.sock push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+            docker -H unix:///var/run/docker.sock logout
             '''
             }
         }
