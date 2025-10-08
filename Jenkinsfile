@@ -116,8 +116,8 @@ EOF
             EOF
 
             echo "Building Docker image..."
-            docker -H tcp://dind:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" .
-            docker -H tcp://dind:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+            docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" .
+            docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
             '''
         }
     }
@@ -129,10 +129,10 @@ EOF
               sh '''
               set -e
               echo "Logging into Docker Hub..."
-              echo "$REG_PASS" | docker -H tcp://dind:2375 login -u "$REG_USER" --password-stdin
+              echo "$REG_PASS" | docker -H tcp://172.18.0.2:2375 login -u "$REG_USER" --password-stdin
               echo "Pushing Docker image to Docker Hub..."
-              docker -H tcp://dind:2375 push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
-              docker -H tcp://dind:2375 logout
+              docker -H tcp://172.18.0.2:2375 push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+              docker -H tcp://172.18.0.2:2375 logout
               '''
             }
         }
