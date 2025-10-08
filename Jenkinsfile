@@ -119,13 +119,8 @@ EOF
         CMD ["npm", "start"]
     EOF
 
-        echo "Packing and streaming context to DinD..."
-        tar -czf context.tar.gz .
-        echo "Build context size:"
-        ls -lh context.tar.gz
-
-        echo "Building image inside DinD..."
-        docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" - < context.tar.gz
+        echo "Building image inside DinD using mounted workspace..."
+        docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" /var/jenkins_home/workspace/22035013_Project2_Pipeline
         docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
 
         echo "Verifying images in DinD..."
@@ -133,7 +128,6 @@ EOF
         '''
       }
     }
-
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
