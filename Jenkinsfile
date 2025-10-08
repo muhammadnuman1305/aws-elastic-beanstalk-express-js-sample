@@ -117,7 +117,7 @@ EOF
         COPY . .
         EXPOSE 3000
         CMD ["npm", "start"]
-        EOF
+    EOF
 
         echo "Packing and streaming context to DinD..."
         tar -czf context.tar.gz .
@@ -133,6 +133,7 @@ EOF
         '''
       }
     }
+
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
