@@ -115,20 +115,20 @@ EOF
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
-        steps {
-            withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-            sh '''
-            set -e
-            echo "Logging into Docker Hub..."
-            echo "$REG_PASS" | docker -H unix:///var/run/docker.sock login -u "$REG_USER" --password-stdin
-            echo "Pushing Docker image to Docker Hub..."
-            docker -H unix:///var/run/docker.sock push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
-            docker -H unix:///var/run/docker.sock logout
-            '''
-            }
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+        sh '''
+        set -e
+        echo "Logging into Docker Hub..."
+        echo "$REG_PASS" | docker -H unix:///var/run/docker.sock login -u "$REG_USER" --password-stdin
+        echo "Pushing Docker image to Docker Hub..."
+        docker -H unix:///var/run/docker.sock push "$IMAGE_NAME:$IMAGE_TAG"
+        docker -H unix:///var/run/docker.sock logout
+        '''
         }
+      }
     }
-  }
+}
 
   // Post Actions
   post {
