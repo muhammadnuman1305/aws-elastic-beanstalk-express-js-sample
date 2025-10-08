@@ -33,39 +33,21 @@ pipeline {
 
     // 2. Prepare Docker CLI so the agent can talk to Docker-in-Docker (DinD)
     stage('Prepare Docker CLI') {
-      steps {
-        sh '''
-        set -e
-        echo "Installing and verifying Docker CLI..."
+        steps {
+            sh '''
+            set -e
+            echo "Installing Docker CLI..."
 
-        export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y docker.io
 
-        # Install prerequisite packages
-        apt-get update -qq
-        apt-get install -y -qq ca-certificates curl gnupg lsb-release
+            echo "Verifying Docker CLI..."
+            docker --version
 
-        # Set up Docker’s official GPG key
-        install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        chmod a+r /etc/apt/keyrings/docker.gpg
-
-        # Add Docker repository
-        echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-        https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
-        > /etc/apt/sources.list.d/docker.list
-
-        # Install Docker CLI only (no daemon)
-        apt-get update -qq
-        apt-get install -y -qq docker-ce-cli
-
-        echo "Verifying Docker CLI version..."
-        docker --version
-
-        echo "Testing Docker daemon connectivity..."
-        docker -H tcp://dind:2375 ps || echo "Warning: Could not reach DinD yet (will retry in next stage)"
-        '''
-      }
+            echo "Testing Docker daemon..."
+            docker -H tcp://dind:2375 ps || echo "⚠️  Docker daemon not ready yet — continuing"
+            '''
+        }
     }
 
     // 3. Install Node dependencies
