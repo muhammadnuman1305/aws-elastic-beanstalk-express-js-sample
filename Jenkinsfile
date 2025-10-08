@@ -101,41 +101,45 @@ EOF
 
     // 6. Build Docker image for the Node.js app
     stage('Docker Build') {
-        steps {
-            sh '''
-            set -e
-            echo "Creating Dockerfile dynamically..."
-            cat > Dockerfile <<'EOF'
-            FROM node:16
-            WORKDIR /app
-            COPY package*.json ./
-            RUN npm install --production
-            COPY . .
-            EXPOSE 3000
-            CMD ["npm", "start"]
-            EOF
+      steps {
+        sh '''
+        set -e
+        echo "Creating Dockerfile dynamically..."
+        cat > Dockerfile <<'EOF'
+        FROM node:16
+        WORKDIR /app
+        COPY package*.json ./
+        RUN npm install --production
+        COPY . .
+        EXPOSE 3000
+        CMD ["npm", "start"]
+        EOF
 
-            echo "Building Docker image..."
-            docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" .
-            docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
-            '''
-        }
+        echo "Packing and streaming context to DinD..."
+        tar -czf context.tar.gz .
+        docker -H tcp://172.18.0.2:2375 build -t "$IMAGE_NAME:$IMAGE_TAG" - < context.tar.gz
+        docker -H tcp://172.18.0.2:2375 tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+
+        echo "Verifying images in DinD..."
+        docker -H tcp://172.18.0.2:2375 images | grep "$IMAGE_NAME" || (echo "Image not found in DinD!" && exit 1)
+        '''
+      }
     }
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
-        steps {
-            withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-              sh '''
-              set -e
-              echo "Logging into Docker Hub..."
-              echo "$REG_PASS" | docker -H tcp://172.18.0.2:2375 login -u "$REG_USER" --password-stdin
-              echo "Pushing Docker image to Docker Hub..."
-              docker -H tcp://172.18.0.2:2375 push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
-              docker -H tcp://172.18.0.2:2375 logout
-              '''
-            }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'docker-reg-cred', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+          sh '''
+          set -e
+          echo "Logging into Docker Hub..."
+          echo "$REG_PASS" | docker -H tcp://172.18.0.2:2375 login -u "$REG_USER" --password-stdin
+          echo "Pushing Docker image to Docker Hub..."
+          docker -H tcp://172.18.0.2:2375 push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+          docker -H tcp://172.18.0.2:2375 logout
+          '''
         }
+      }
     }
 }
 
