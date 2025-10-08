@@ -115,13 +115,13 @@ EOF
             EOF
 
             echo "Building Docker image..."
-            docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" .
+            docker build -t "$IMAGE_NAME:$IMAGE_TAG" .
 
-            echo "Docker image built successfully."
+            echo "Tagging image for Docker Hub..."
+            docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
             '''
+        }
     }
-    }
-
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
