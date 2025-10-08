@@ -104,9 +104,11 @@ EOF
             sh '''
             set -e
             echo "Building Docker image with correct tags..."
-            docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "docker.io/$IMAGE_NAME:$IMAGE_TAG" .
+            docker build -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" -f Dockerfile "$WORKSPACE"
             docker images | grep "$IMAGE_NAME"
             '''
+            // docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "docker.io/$IMAGE_NAME:$IMAGE_TAG" .
+            // docker images | grep "$IMAGE_NAME"
         }
     }
 
