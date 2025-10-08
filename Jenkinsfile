@@ -1,9 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'node:16'  // Use the full Node 16 image (not slim)
-      // args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
-      // args "-u root:root"
+      image 'node:16'
       args '--network project2-compose_jenkins_dind -u root:root'
     }
   }
@@ -131,6 +129,14 @@ EOF
     '''
   }
 }
+
+    // 8. Artifact build files
+    stage('Archive Build Files') {
+      steps {
+        sh 'tar -czf build_logs.tar.gz .'
+        archiveArtifacts artifacts: 'build_logs.tar.gz', fingerprint: true
+      }
+    }
 
     // 7. Push the built image to Docker Hub
     stage('Docker Push') {
