@@ -33,21 +33,31 @@ pipeline {
 
     // 2. Prepare Docker CLI so the agent can talk to Docker-in-Docker (DinD)
     stage('Prepare Docker CLI') {
-        steps {
-            sh '''
-            set -e
-            echo "Installing Docker CLI..."
-
-            apt-get update -y
-            apt-get install -y docker.io
-
-            echo "Verifying Docker CLI..."
-            docker --version
-
-            echo "Testing Docker daemon..."
-            docker -H tcp://dind:2375 ps || echo "⚠️  Docker daemon not ready yet — continuing"
-            '''
-        }
+      steps {
+        sh '''
+        set -e
+        echo "Configuring Debian Buster archive repositories..."
+        
+        # Replace with archive.debian.org
+        cat > /etc/apt/sources.list <<'EOF'
+deb http://archive.debian.org/debian/ buster main
+deb http://archive.debian.org/debian-security buster/updates main
+EOF
+        
+        # Disable release file validity check (archive repos don't update)
+        echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid
+        
+        echo "Installing Docker CLI..."
+        apt-get update -y
+        apt-get install -y docker.io
+        
+        echo "Verifying Docker CLI..."
+        docker --version
+        
+        echo "Testing Docker daemon connection..."
+        docker -H tcp://dind:2375 ps || echo "⚠️  Docker daemon not ready yet — continuing"
+        '''
+      }
     }
 
     // 3. Install Node dependencies
