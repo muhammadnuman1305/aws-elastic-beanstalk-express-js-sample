@@ -2,7 +2,8 @@ pipeline {
   agent {
     docker {
       image 'node:16'  // Use the full Node 16 image (not slim)
-      args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST=tcp://dind:2375 --network project2-compose_jenkins_dind'
+    //   args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST=tcp://dind:2375 --network project2-compose_jenkins_dind'
+      args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
 
