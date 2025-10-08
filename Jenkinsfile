@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'node:16'  // ✅ Use the full Node 16 image (not slim)
+      image 'node:16'  // Use the full Node 16 image (not slim)
       args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST=tcp://dind:2375'
     }
   }
@@ -36,14 +36,8 @@ pipeline {
         steps {
             sh '''
             set -e
-            echo "Installing Docker CLI (Debian 10 fix)..."
+            echo "Installing Docker CLI..."
 
-            # Fix outdated Debian repositories
-            sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list
-            sed -i 's|security.debian.org|archive.debian.org|g' /etc/apt/sources.list
-            echo "Acquire::Check-Valid-Until false;" > /etc/apt/apt.conf.d/99no-check-valid
-
-            # Update and install Docker CLI
             apt-get update -y
             apt-get install -y docker.io
 
