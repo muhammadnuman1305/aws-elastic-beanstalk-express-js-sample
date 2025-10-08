@@ -104,9 +104,9 @@ EOF
             sh '''
             set -e
             echo "Building Docker image with correct tags..."
-            docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f Dockerfile "$WORKSPACE"
-            docker tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
-            docker images | grep "$IMAGE_NAME"
+            docker -H unix:///var/run/docker.sock build -t "$IMAGE_NAME:$IMAGE_TAG" -f Dockerfile "$WORKSPACE"
+            docker -H unix:///var/run/docker.sock tag "$IMAGE_NAME:$IMAGE_TAG" "docker.io/$IMAGE_NAME:$IMAGE_TAG"
+            docker -H unix:///var/run/docker.sock push "docker.io/$IMAGE_NAME:$IMAGE_TAG"
             '''
             // docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "docker.io/$IMAGE_NAME:$IMAGE_TAG" .
             // docker images | grep "$IMAGE_NAME"
